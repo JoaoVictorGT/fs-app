@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: studio-fitness-backend
+    ports:
+      - '4000:4000'
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: studio-fitness-frontend
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:4000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  firebase-emulator:
+    image: node:20-alpine
+    container_name: studio-fitness-firebase
+    working_dir: /app
+    volumes:
+      - ./firebase:/app
+    command: sh -c "npm install -g firebase-tools && firebase emulators:start --only firestore --project demo-studio-fitness"
+    ports:
+      - '8080:8080'
+      - '4400:4400'
+    profiles:
+      - emulator

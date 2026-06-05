@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function hasRole(role) {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    // Teachers collection
+    match /teachers/{teacherId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && hasRole('admin');
+    }
+
+    // Students collection
+    match /students/{studentId} {
+      allow read: if isAuthenticated() && (isOwner(studentId) || hasRole('teacher'));
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (isOwner(studentId) || hasRole('teacher'));
+    }
+
+    // Slots collection
+    match /slots/{slotId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && hasRole('teacher');
+    }
+
+    // Bookings collection
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated() && (
+        isOwner(resource.data.studentId) || hasRole('teacher')
+      );
+      allow create: if isAuthenticated() && hasRole('student');
+      allow update: if isAuthenticated() && (
+        isOwner(resource.data.studentId) || hasRole('teacher')
+      );
+    }
+  }
+}
