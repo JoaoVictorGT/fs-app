@@ -1,10 +1,8 @@
-import { v4 as uuid } from 'uuid';
-import { StudentRepository } from '../repositories/student.repository';
+import { FirestoreStudentRepository } from '../repositories/firestore/student.repository';
 import { Student, CreateStudentDTO, UpdateStudentDTO } from '../models/student.model';
-import { mockAuthUsers } from '../data/mockData';
-import { AuthUser } from '../models/user.model';
+import { auth } from '../config/firebase';
 
-const repo = new StudentRepository();
+const repo = new FirestoreStudentRepository();
 
 export class StudentService {
   async getById(id: string): Promise<Student> {
@@ -17,25 +15,43 @@ export class StudentService {
     return repo.findAll({ teacherId });
   }
 
-  async register(data: CreateStudentDTO): Promise<{ student: Student; authUser: AuthUser }> {
-    const existing = await repo.findByEmail(data.email);
-    if (existing) throw { status: 409, message: 'E-mail já cadastrado' };
+  /**
+   * Registra um novo aluno de grupo:
+   * 1. Cria usuário no Firebase Authentication (com a senha fornecida).
+   * 2. Cria o documento em Firestore (users/{uid}).
+   *
+   * O frontend deve usar signInWithEmailAndPassword após o cadastro.
+   */
+  async register(data: CreateStudentDTO & { password: string }): Promise<Student> {
+    // 1. Criar usuário no Firebase Auth via Admin SDK
+    let uid: string;
+    try {
+      const userRecord = await auth.createUser({
+        email:       data.email,
+        password:    data.password,
+        displayName: data.name,
+      });
+      uid = userRecord.uid;
+    } catch (err: any) {
+      if (err.code === 'auth/email-already-exists') {
+        throw { status: 409, message: 'E-mail já cadastrado' };
+      }
+      if (err.code === 'auth/weak-password') {
+        throw { status: 400, message: 'Senha muito fraca. Use no mínimo 6 caracteres.' };
+      }
+      throw { status: 500, message: 'Erro ao criar usuário. Tente novamente.' };
+    }
 
-    const student = await repo.create(data);
-
-    // Create a matching auth user in memory (replace with Firebase Auth when available)
-    const authUser: AuthUser = {
-      id: `auth-student-${uuid()}`,
-      email: data.email,
-      password: 'student123', // temporary default — should be set by user
-      role: 'student',
-      name: data.name,
-      profileId: student.id,
-      teacherId: data.teacherId,
-    };
-    mockAuthUsers.push(authUser);
-
-    return { student, authUser };
+    // 2. Criar documento no Firestore
+    try {
+      const { password: _, ...profileData } = data;
+      const student = await repo.create(uid, profileData);
+      return student;
+    } catch (err) {
+      // Rollback: remover usuário do Firebase Auth para evitar conta órfã
+      await auth.deleteUser(uid).catch(() => {});
+      throw err;
+    }
   }
 
   async update(id: string, data: UpdateStudentDTO): Promise<Student> {

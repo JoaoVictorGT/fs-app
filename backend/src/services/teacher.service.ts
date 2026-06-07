@@ -1,7 +1,7 @@
-import { TeacherRepository } from '../repositories/teacher.repository';
+import { FirestoreTeacherRepository } from '../repositories/firestore/teacher.repository';
 import { Teacher, CreateTeacherDTO, UpdateTeacherDTO } from '../models/teacher.model';
 
-const repo = new TeacherRepository();
+const repo = new FirestoreTeacherRepository();
 
 export class TeacherService {
   async getAll(): Promise<Teacher[]> {

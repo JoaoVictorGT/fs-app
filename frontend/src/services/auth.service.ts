@@ -1,18 +1,14 @@
 import api from './api';
-import { LoginResponse } from '../models';
+import { AuthUser } from '../models';
 
+/**
+ * authService — apenas para interações com o backend.
+ * Login/logout são gerenciados pelo Firebase SDK via useAuth.
+ */
 export const authService = {
-  async login(email: string, password: string): Promise<LoginResponse> {
-    const { data } = await api.post<LoginResponse>('/auth/login', { email, password });
-    return data;
-  },
-
-  async logout(): Promise<void> {
-    await api.post('/auth/logout').catch(() => {});
-  },
-
-  async me() {
-    const { data } = await api.get('/auth/me');
+  /** Busca o perfil do usuário autenticado no Firestore (via backend). */
+  async me(): Promise<AuthUser> {
+    const { data } = await api.get<{ user: AuthUser }>('/auth/me');
     return data.user;
   },
 };

@@ -12,7 +12,9 @@ import { StudentSlots } from './views/Student/StudentSlots';
 import { StudentBookings } from './views/Student/StudentBookings';
 
 function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: 'teacher' | 'student' }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  // Aguarda o Firebase Auth resolver a sessão antes de redirecionar
+  if (loading) return <div className="loading-fullscreen"><span className="spinner" /></div>;
   if (!user) return <Navigate to="/login" replace />;
   if (role && user.role !== role) {
     return <Navigate to={user.role === 'teacher' ? '/teacher/dashboard' : '/student/dashboard'} replace />;

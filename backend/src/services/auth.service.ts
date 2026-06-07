@@ -1,27 +1,27 @@
-import jwt from 'jsonwebtoken';
-import { mockAuthUsers } from '../data/mockData';
+import { auth, db } from '../config/firebase';
 import { JwtPayload } from '../models/user.model';
 
+/**
+ * AuthService — com Firebase Auth o login acontece no frontend.
+ * O backend apenas verifica o ID Token e retorna o perfil do Firestore.
+ */
 export class AuthService {
-  async login(email: string, password: string): Promise<{ token: string; user: Omit<JwtPayload, never> }> {
-    const authUser = mockAuthUsers.find(u => u.email === email && u.password === password);
-    if (!authUser) {
-      throw { status: 401, message: 'E-mail ou senha inválidos' };
+  async getProfile(token: string): Promise<JwtPayload> {
+    const decoded = await auth.verifyIdToken(token);
+
+    const userDoc = await db.collection('users').doc(decoded.uid).get();
+    if (!userDoc.exists) {
+      throw { status: 404, message: 'Perfil não encontrado. Contate o administrador.' };
     }
 
-    const payload: JwtPayload = {
-      userId: authUser.id,
-      email: authUser.email,
-      role: authUser.role,
-      name: authUser.name,
-      profileId: authUser.profileId,
-      teacherId: authUser.teacherId,
+    const data = userDoc.data()!;
+    return {
+      userId:    decoded.uid,
+      email:     decoded.email ?? data.email ?? '',
+      role:      data.role,
+      name:      data.name,
+      profileId: decoded.uid,
+      teacherId: data.teacherId ?? undefined,
     };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'studio-fitness-secret', {
-      expiresIn: '7d',
-    });
-
-    return { token, user: payload };
   }
 }

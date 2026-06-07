@@ -47,4 +47,12 @@ export class BookingController {
       res.json(booking);
     } catch (err) { next(err); }
   }
+
+  async confirmAttendance(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const teacherId = req.user!.profileId;
+      const booking = await service.confirmAttendance(req.params.id, teacherId);
+      res.json(booking);
+    } catch (err) { next(err); }
+  }
 }

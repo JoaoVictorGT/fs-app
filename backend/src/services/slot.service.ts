@@ -1,7 +1,7 @@
-import { SlotRepository } from '../repositories/slot.repository';
+import { FirestoreSlotRepository } from '../repositories/firestore/slot.repository';
 import { Slot, CreateSlotDTO, UpdateSlotDTO } from '../models/slot.model';
 
-const repo = new SlotRepository();
+const repo = new FirestoreSlotRepository();
 
 export class SlotService {
   async getSlots(filter?: { teacherId?: string; date?: string }): Promise<Slot[]> {

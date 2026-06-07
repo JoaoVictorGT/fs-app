@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect } from 'react';
-import { Slot, CreateSlotPayload, SlotType } from '../../models';
+import { Slot, CreateSlotPayload } from '../../models';
 
 interface Props {
   slot?: Slot;

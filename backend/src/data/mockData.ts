@@ -4,6 +4,8 @@ import { Student } from '../models/student.model';
 import { Slot } from '../models/slot.model';
 import { Booking } from '../models/booking.model';
 import { AuthUser } from '../models/user.model';
+import { Streak } from '../models/streak.model';
+import { getISOWeek } from '../utils/week.util';
 
 // ── Teachers ──────────────────────────────────────────────────────────────────
 const TEACHER_ID_1 = 'teacher-001';
@@ -144,6 +146,8 @@ export const mockSlots: Slot[] = [
   },
 ];
 
+const EMPTY_CALENDAR = { google: null, outlook: null };
+
 // ── Bookings ──────────────────────────────────────────────────────────────────
 export const mockBookings: Booking[] = [
   {
@@ -152,6 +156,8 @@ export const mockBookings: Booking[] = [
     studentId: STUDENT_ID_1,
     teacherId: TEACHER_ID_1,
     status: 'confirmed',
+    attendanceConfirmed: true,
+    calendarEvents: EMPTY_CALENDAR,
     bookedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
   },
   {
@@ -160,7 +166,57 @@ export const mockBookings: Booking[] = [
     studentId: STUDENT_ID_2,
     teacherId: TEACHER_ID_1,
     status: 'confirmed',
+    attendanceConfirmed: false,
+    calendarEvents: EMPTY_CALENDAR,
     bookedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+  },
+];
+
+// ── Streaks ───────────────────────────────────────────────────────────────────
+const now = new Date();
+const currentWeek = getISOWeek(now);
+const prevWeek = getISOWeek(new Date(now.getTime() - 7 * 86400000));
+const twoWeeksAgo = getISOWeek(new Date(now.getTime() - 14 * 86400000));
+const threeWeeksAgo = getISOWeek(new Date(now.getTime() - 21 * 86400000));
+
+export const mockStreaks: Streak[] = [
+  {
+    id: 'streak-001',
+    studentId: STUDENT_ID_1,
+    currentStreak: 3,
+    recordStreak: 5,
+    lastTrainedWeek: currentWeek,
+    weeklyHistory: [
+      { week: threeWeeksAgo, trained: true },
+      { week: twoWeeksAgo,   trained: true },
+      { week: prevWeek,      trained: true },
+      { week: currentWeek,   trained: true },
+    ],
+    updatedAt: new Date(),
+  },
+  {
+    id: 'streak-002',
+    studentId: STUDENT_ID_2,
+    currentStreak: 1,
+    recordStreak: 3,
+    lastTrainedWeek: prevWeek,
+    weeklyHistory: [
+      { week: prevWeek, trained: true },
+      { week: currentWeek, trained: false },
+    ],
+    updatedAt: new Date(),
+  },
+  {
+    id: 'streak-003',
+    studentId: STUDENT_ID_3,
+    currentStreak: 0,
+    recordStreak: 2,
+    lastTrainedWeek: twoWeeksAgo,
+    weeklyHistory: [
+      { week: twoWeeksAgo, trained: true },
+      { week: prevWeek,    trained: false },
+    ],
+    updatedAt: new Date(),
   },
 ];
 
