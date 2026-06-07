@@ -18,51 +18,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build backend image
-        run: docker build --progress=plain -t studio-fitness-backend:test -f backend/Dockerfile.ci ./backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
 
-      - name: Test backend startup
-        run: |
-          echo "=== Checking dist/ exists ==="
-          docker run --rm studio-fitness-backend:test ls -la dist/ || echo "dist/ not found"
-          echo "=== Running node directly ==="
-          docker run --rm \
-            -e NODE_ENV=test \
-            -e PORT=4000 \
-            -e JWT_SECRET=dast-test-secret \
-            -e CORS_ORIGIN=http://localhost:3000 \
-            -e FIREBASE_PROJECT_ID=demo-studio-fitness \
-            -e FIRESTORE_EMULATOR_HOST=localhost:8080 \
-            studio-fitness-backend:test \
-            sh -c "node dist/server.js 2>&1 & sleep 5 && kill %1 && echo 'Server ran for 5s'" || true
+      - name: Install deps
+        working-directory: backend
+        run: npm ci
 
-      - name: Start backend container
-        run: |
-          docker run -d \
-            --name studio-fitness-backend \
-            -p 4000:4000 \
-            -e NODE_ENV=test \
-            -e PORT=4000 \
-            -e JWT_SECRET=dast-test-secret \
-            -e CORS_ORIGIN=http://localhost:3000 \
-            -e FIREBASE_PROJECT_ID=demo-studio-fitness \
-            -e FIRESTORE_EMULATOR_HOST=host.docker.internal:8080 \
-            studio-fitness-backend:test
+      - name: Build
+        working-directory: backend
+        run: npm run build
 
-      - name: Debug backend logs
-        if: always()
+      - name: Start backend
+        working-directory: backend
         run: |
-          sleep 3
-          docker logs studio-fitness-backend 2>&1 || true
+          NODE_ENV=test \
+          PORT=4000 \
+          JWT_SECRET=dast-test-secret \
+          CORS_ORIGIN=http://localhost:3000 \
+          FIREBASE_PROJECT_ID=demo-studio-fitness \
+          FIRESTORE_EMULATOR_HOST=localhost:8080 \
+          node dist/server.js &
+          echo $! > /tmp/backend.pid
 
       - name: Wait for backend to be ready
         run: |
           retries=0
           until curl -sf http://localhost:4000/api/health; do
             echo "waiting for backend..."
-            sleep 3
+            sleep 2
             retries=$((retries+1))
-            if [ $retries -ge 20 ]; then echo "Backend not ready"; exit 1; fi
+            if [ $retries -ge 20 ]; then
+              echo "Backend not ready. Logs:"
+              cat /tmp/backend.log 2>/dev/null || true
+              exit 1
+            fi
           done
           echo "Backend is ready"
 
@@ -80,3 +73,7 @@ jobs:
         with:
           name: zap-report
           path: report_json.json
+
+      - name: Stop backend
+        if: always()
+        run: kill $(cat /tmp/backend.pid) 2>/dev/null || true
