@@ -18,45 +18,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
+      - name: Build backend image
+        run: docker build -t studio-fitness-backend:test -f backend/Dockerfile.ci ./backend
 
-      - name: Install deps
-        working-directory: backend
-        run: npm ci
-
-      - name: Build
-        working-directory: backend
-        run: npm run build
-
-      - name: Start backend and wait for ready
-        working-directory: backend
+      - name: Start backend container
         run: |
-          export NODE_ENV=test
-          export PORT=4000
-          export JWT_SECRET=dast-test-secret
-          export CORS_ORIGIN=http://localhost:3000
-          export FIREBASE_PROJECT_ID=demo-studio-fitness
-          export FIRESTORE_EMULATOR_HOST=localhost:8080
+          docker run -d \
+            --name studio-fitness-backend \
+            -p 4000:4000 \
+            -e NODE_ENV=test \
+            -e PORT=4000 \
+            -e JWT_SECRET=dast-test-secret \
+            -e CORS_ORIGIN=http://localhost:3000 \
+            -e FIREBASE_PROJECT_ID=demo-studio-fitness \
+            -e FIRESTORE_EMULATOR_HOST=localhost:8080 \
+            studio-fitness-backend:test \
+            sh -c "node dist/server.js"
 
-          setsid node dist/server.js > /tmp/backend.log 2>&1 &
-          SERVER_PID=$!
-          echo $SERVER_PID > /tmp/backend.pid
-
+      - name: Wait for backend to be ready
+        run: |
           retries=0
           until curl -sf http://127.0.0.1:4000/api/health; do
             echo "waiting..."
+            docker logs studio-fitness-backend 2>&1 | tail -5 || true
             sleep 2
             retries=$((retries+1))
             if [ $retries -ge 20 ]; then
-              echo "=== TIMEOUT ==="
-              ss -tlnp | grep ':4000' || echo "Nothing on port 4000"
-              kill -0 $SERVER_PID 2>&1 && echo "alive" || echo "DEAD"
-              echo "=== LOG ==="
-              cat /tmp/backend.log || echo "(empty)"
+              echo "=== FULL LOGS ==="
+              docker logs studio-fitness-backend 2>&1 || true
               exit 1
             fi
           done
@@ -79,4 +68,4 @@ jobs:
 
       - name: Stop backend
         if: always()
-        run: kill $(cat /tmp/backend.pid) 2>/dev/null || true
+        run: docker stop studio-fitness-backend && docker rm studio-fitness-backend || true
