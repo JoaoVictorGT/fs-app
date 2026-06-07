@@ -4,64 +4,51 @@ on:
   push:
     branches: [main]
     paths:
-      - 'api/**'
-      - 'scraper/**'
+      - 'backend/**'
   pull_request:
     branches: [main]
     paths:
-      - 'api/**'
-      - 'scraper/**'
+      - 'backend/**'
 
 jobs:
   zap:
     name: OWASP ZAP API Scan
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER:     cve
-          POSTGRES_PASSWORD: cve
-          POSTGRES_DB:       cvedb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build API image
-        run: docker build -t cve-api:test ./api
+      - name: Build backend image
+        run: docker build -t studio-fitness-backend:test ./backend
 
-      - name: Start API container
+      - name: Start backend container
         run: |
           docker run -d \
-            --name cve-api \
+            --name studio-fitness-backend \
             --network host \
-            -e DATABASE_URL=postgresql://cve:cve@localhost:5432/cvedb \
-            -p 8080:8080 \
-            cve-api:test
+            -e NODE_ENV=test \
+            -e PORT=4000 \
+            -e JWT_SECRET=dast-test-secret \
+            -e CORS_ORIGIN=http://localhost:3000 \
+            -e FIREBASE_PROJECT_ID=demo-studio-fitness \
+            -e FIRESTORE_EMULATOR_HOST=localhost:8080 \
+            studio-fitness-backend:test
 
-      - name: Wait for API to be ready
+      - name: Wait for backend to be ready
         run: |
           retries=0
-          until curl -sf http://localhost:8080/healthz; do
-            echo "waiting for API..."
+          until curl -sf http://localhost:4000/api/health; do
+            echo "waiting for backend..."
             sleep 3
             retries=$((retries+1))
-            if [ $retries -ge 20 ]; then echo "API not ready"; exit 1; fi
+            if [ $retries -ge 20 ]; then echo "Backend not ready"; exit 1; fi
           done
-          echo "API is ready"
+          echo "Backend is ready"
 
       - name: Run OWASP ZAP API Scan
         uses: zaproxy/action-api-scan@v0.9.0
         with:
-          target: http://localhost:8080/openapi.json
+          target: http://localhost:4000/openapi.json
           fail_action: true
           allow_issue_writing: false
           cmd_options: '-I'
