@@ -34,6 +34,10 @@ jobs:
             -e FIRESTORE_EMULATOR_HOST=localhost:8080 \
             studio-fitness-backend:test
 
+      - name: Debug backend logs
+        if: always()
+        run: docker logs studio-fitness-backend || true
+
       - name: Wait for backend to be ready
         run: |
           retries=0
