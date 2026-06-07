@@ -40,13 +40,13 @@ jobs:
         run: |
           docker run -d \
             --name studio-fitness-backend \
-            --network host \
+            -p 4000:4000 \
             -e NODE_ENV=test \
             -e PORT=4000 \
             -e JWT_SECRET=dast-test-secret \
             -e CORS_ORIGIN=http://localhost:3000 \
             -e FIREBASE_PROJECT_ID=demo-studio-fitness \
-            -e FIRESTORE_EMULATOR_HOST=localhost:8080 \
+            -e FIRESTORE_EMULATOR_HOST=host.docker.internal:8080 \
             studio-fitness-backend:test
 
       - name: Debug backend logs
