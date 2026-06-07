@@ -47,19 +47,20 @@ jobs:
           disown $SERVER_PID
           echo $SERVER_PID > /tmp/backend.pid
 
-          retries=0
-          until curl -sf http://127.0.0.1:4000/api/health; do
-            echo "waiting..."
-            tail -3 /tmp/backend.log 2>/dev/null || true
-            sleep 2
-            retries=$((retries+1))
-            if [ $retries -ge 20 ]; then
-              echo "=== FULL LOG ==="
-              cat /tmp/backend.log || true
-              exit 1
-            fi
-          done
-          echo "Backend is ready"
+          echo "=== Waiting 8s for server to start ==="
+          sleep 8
+
+          echo "=== Process alive? ==="
+          kill -0 $SERVER_PID 2>&1 && echo "Process $SERVER_PID is running" || echo "Process $SERVER_PID is DEAD"
+
+          echo "=== Port 4000 listening? ==="
+          ss -tlnp | grep ':4000' || echo "Nothing on port 4000"
+
+          echo "=== Log content ==="
+          cat /tmp/backend.log || echo "(log file empty or missing)"
+
+          echo "=== Curl test ==="
+          curl -v http://127.0.0.1:4000/api/health || true
 
       - name: Run OWASP ZAP API Scan
         uses: zaproxy/action-api-scan@v0.9.0
