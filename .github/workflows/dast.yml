@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build backend image
-        run: docker build -t studio-fitness-backend:test ./backend
+        run: docker build -t studio-fitness-backend:test -f backend/Dockerfile.ci ./backend
 
       - name: Start backend container
         run: |
