@@ -1,61 +1,61 @@
-# name: DAST
+name: DAST
 
-# on:
-#   push:
-#     branches: [main]
-#     paths:
-#       - 'backend/**'
-#   pull_request:
-#     branches: [main]
-#     paths:
-#       - 'backend/**'
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
 
-# jobs:
-#   zap:
-#     name: OWASP ZAP API Scan
-#     runs-on: ubuntu-latest
+jobs:
+  zap:
+    name: OWASP ZAP API Scan
+    runs-on: ubuntu-latest
 
-#     steps:
-#       - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-#       - name: Build backend image
-#         run: docker build -t studio-fitness-backend:test ./backend
+      - name: Build backend image
+        run: docker build -t studio-fitness-backend:test ./backend
 
-#       - name: Start backend container
-#         run: |
-#           docker run -d \
-#             --name studio-fitness-backend \
-#             --network host \
-#             -e NODE_ENV=test \
-#             -e PORT=4000 \
-#             -e JWT_SECRET=dast-test-secret \
-#             -e CORS_ORIGIN=http://localhost:3000 \
-#             -e FIREBASE_PROJECT_ID=demo-studio-fitness \
-#             -e FIRESTORE_EMULATOR_HOST=localhost:8080 \
-#             studio-fitness-backend:test
+      - name: Start backend container
+        run: |
+          docker run -d \
+            --name studio-fitness-backend \
+            --network host \
+            -e NODE_ENV=test \
+            -e PORT=4000 \
+            -e JWT_SECRET=dast-test-secret \
+            -e CORS_ORIGIN=http://localhost:3000 \
+            -e FIREBASE_PROJECT_ID=demo-studio-fitness \
+            -e FIRESTORE_EMULATOR_HOST=localhost:8080 \
+            studio-fitness-backend:test
 
-#       - name: Wait for backend to be ready
-#         run: |
-#           retries=0
-#           until curl -sf http://localhost:4000/api/health; do
-#             echo "waiting for backend..."
-#             sleep 3
-#             retries=$((retries+1))
-#             if [ $retries -ge 20 ]; then echo "Backend not ready"; exit 1; fi
-#           done
-#           echo "Backend is ready"
+      - name: Wait for backend to be ready
+        run: |
+          retries=0
+          until curl -sf http://localhost:4000/api/health; do
+            echo "waiting for backend..."
+            sleep 3
+            retries=$((retries+1))
+            if [ $retries -ge 20 ]; then echo "Backend not ready"; exit 1; fi
+          done
+          echo "Backend is ready"
 
-#       - name: Run OWASP ZAP API Scan
-#         uses: zaproxy/action-api-scan@v0.9.0
-#         with:
-#           target: http://localhost:4000/openapi.json
-#           fail_action: true
-#           allow_issue_writing: false
-#           cmd_options: '-I'
+      - name: Run OWASP ZAP API Scan
+        uses: zaproxy/action-api-scan@v0.9.0
+        with:
+          target: http://localhost:4000/openapi.json
+          fail_action: true
+          allow_issue_writing: false
+          cmd_options: '-I'
 
-#       - name: Upload ZAP report
-#         if: always()
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: zap-report
-#           path: report_json.json
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: report_json.json
