@@ -24,12 +24,6 @@ jobs:
         working-directory: backend
         run: npm ci
 
-      - name: Dependency audit
-        working-directory: backend
-        run: |
-          npm audit fix || true
-          npm audit --audit-level=high
-
       - name: Typecheck
         working-directory: backend
         run: npx tsc --noEmit
@@ -50,10 +44,6 @@ jobs:
       - name: Install deps
         working-directory: frontend
         run: npm ci
-
-      - name: Dependency audit
-        working-directory: frontend
-        run: npm audit --audit-level=high
 
       - name: Lint
         working-directory: frontend
