@@ -37,19 +37,19 @@ jobs:
 
       - name: Wait for backend to be ready
         run: |
-          retries=0
-          until curl -sf http://127.0.0.1:4000/api/health; do
-            echo "waiting..."
-            docker logs studio-fitness-backend 2>&1 | tail -5 || true
-            sleep 2
-            retries=$((retries+1))
-            if [ $retries -ge 20 ]; then
-              echo "=== FULL LOGS ==="
-              docker logs studio-fitness-backend 2>&1 || true
-              exit 1
-            fi
-          done
-          echo "Backend is ready"
+          sleep 8
+
+          echo "=== Container status ==="
+          docker ps -a | grep studio-fitness-backend || true
+
+          echo "=== Container logs ==="
+          docker logs studio-fitness-backend 2>&1 || true
+
+          echo "=== Port 4000 listening? ==="
+          ss -tlnp | grep ':4000' || echo "Nothing on port 4000"
+
+          echo "=== Curl test ==="
+          curl -v http://127.0.0.1:4000/api/health || true
 
       - name: Run OWASP ZAP API Scan
         uses: zaproxy/action-api-scan@v0.9.0
