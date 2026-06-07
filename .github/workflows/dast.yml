@@ -32,7 +32,7 @@ jobs:
         working-directory: backend
         run: npm run build
 
-      - name: Start backend
+      - name: Start backend and wait for ready
         working-directory: backend
         run: |
           export NODE_ENV=test
@@ -41,15 +41,16 @@ jobs:
           export CORS_ORIGIN=http://localhost:3000
           export FIREBASE_PROJECT_ID=demo-studio-fitness
           export FIRESTORE_EMULATOR_HOST=localhost:8080
-          nohup node dist/server.js > /tmp/backend.log 2>&1 &
-          echo $! > /tmp/backend.pid
 
-      - name: Wait for backend to be ready
-        run: |
+          node dist/server.js > /tmp/backend.log 2>&1 &
+          SERVER_PID=$!
+          disown $SERVER_PID
+          echo $SERVER_PID > /tmp/backend.pid
+
           retries=0
           until curl -sf http://127.0.0.1:4000/api/health; do
-            echo "waiting... log:"
-            tail -5 /tmp/backend.log 2>/dev/null || true
+            echo "waiting..."
+            tail -3 /tmp/backend.log 2>/dev/null || true
             sleep 2
             retries=$((retries+1))
             if [ $retries -ge 20 ]; then
