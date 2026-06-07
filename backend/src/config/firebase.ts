@@ -3,9 +3,11 @@ import * as admin from 'firebase-admin';
 // Inicializa o Firebase Admin SDK apenas uma vez (hot-reload safe)
 if (!admin.apps.length) {
   const isEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
+  // FIREBASE_MOCK=true: sobe o servidor sem conexão real ao Firebase (usado em DAST/CI scan)
+  const isMock = process.env.FIREBASE_MOCK === 'true';
 
-  if (isEmulator) {
-    // Modo emulator (dev/CI): não precisa de credenciais reais
+  if (isEmulator || isMock) {
+    // Modo emulator (dev local) ou mock (CI/DAST): não precisa de credenciais reais
     admin.initializeApp({
       projectId: process.env.FIREBASE_PROJECT_ID || 'demo-studio-fitness',
     });
