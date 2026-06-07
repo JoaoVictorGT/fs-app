@@ -23,8 +23,10 @@ jobs:
 
       - name: Test backend startup
         run: |
+          echo "=== Checking dist/ exists ==="
+          docker run --rm studio-fitness-backend:test ls -la dist/ || echo "dist/ not found"
+          echo "=== Running node directly ==="
           docker run --rm \
-            --network host \
             -e NODE_ENV=test \
             -e PORT=4000 \
             -e JWT_SECRET=dast-test-secret \
@@ -32,7 +34,7 @@ jobs:
             -e FIREBASE_PROJECT_ID=demo-studio-fitness \
             -e FIRESTORE_EMULATOR_HOST=localhost:8080 \
             studio-fitness-backend:test \
-            node -e "require('./dist/server.js')" 2>&1 | head -50 || true
+            sh -c "node dist/server.js 2>&1 & sleep 5 && kill %1 && echo 'Server ran for 5s'" || true
 
       - name: Start backend container
         run: |
