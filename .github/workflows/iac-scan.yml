@@ -1,0 +1,62 @@
+name: IaC Scan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'terraform/**'
+      - 'k8s/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'terraform/**'
+      - 'k8s/**'
+
+jobs:
+  tfsec:
+    name: Terraform Security Scan (tfsec)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: terraform/
+          soft_fail: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  kubesec:
+    name: Kubernetes Manifest Scan (kubesec)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubesec
+        run: |
+          curl -sSL https://github.com/controlplaneio/kubesec/releases/download/v2.14.2/kubesec_linux_amd64.tar.gz | tar -xz
+          sudo mv kubesec /usr/local/bin/
+
+      - name: Scan k8s manifests
+        run: |
+          FAIL=0
+          for file in k8s/*.yaml; do
+            echo "Scanning $file..."
+            result=$(kubesec scan "$file" 2>&1) || true
+            echo "$result"
+            score=$(echo "$result" | python3 -c "import sys,json; data=json.load(sys.stdin); print(data[0]['score'])" 2>/dev/null || echo "0")
+            if [ "$score" -lt 0 ]; then
+              echo "FAIL: $file scored $score (below 0)"
+              FAIL=1
+            fi
+          done
+          exit $FAIL
+
+      - name: Upload kubesec results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubesec-results
+          path: k8s/
