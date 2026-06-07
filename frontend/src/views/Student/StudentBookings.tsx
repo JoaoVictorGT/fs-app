@@ -79,7 +79,7 @@ export function StudentBookings() {
         <div className="empty-state">
           <div className="empty-icon">📋</div>
           <h3>Nenhum agendamento encontrado</h3>
-          <p>Acesse "Horários" para agendar sua primeira aula</p>
+          <p>Acesse &quot;Horários&quot; para agendar sua primeira aula</p>
         </div>
       )}
 

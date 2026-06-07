@@ -131,7 +131,7 @@ export function StudentDashboard() {
         <div className="empty-state">
           <div className="empty-icon">🏃</div>
           <h3>Nenhuma aula agendada</h3>
-          <p>Acesse a aba "Horários" para agendar uma aula</p>
+          <p>Acesse a aba &quot;Horários&quot; para agendar uma aula</p>
         </div>
       ) : (
         <div className="booking-list">

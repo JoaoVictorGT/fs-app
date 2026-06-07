@@ -105,7 +105,7 @@ export function TeacherSlots() {
         <div className="empty-state">
           <div className="empty-icon">📅</div>
           <h3>Nenhum horário encontrado</h3>
-          <p>Clique em "Novo horário" para começar</p>
+          <p>Clique em &quot;Novo horário&quot; para começar</p>
         </div>
       )}
 
