@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build:
@@ -25,7 +23,10 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    env_file:
+      - ./frontend/.env
     environment:
+      # Sobrescreve VITE_API_URL para localhost (acesso do browser ao backend)
       - VITE_API_URL=http://localhost:4000
     depends_on:
       - backend
@@ -37,7 +38,7 @@ services:
     working_dir: /app
     volumes:
       - ./firebase:/app
-    command: sh -c "npm install -g firebase-tools && firebase emulators:start --only firestore --project demo-studio-fitness"
+    command: sh -c "apk add --no-cache openjdk17-jre-headless && npm install -g firebase-tools && firebase emulators:start --only firestore --project demo-studio-fitness"
     ports:
       - '8080:8080'
       - '4400:4400'

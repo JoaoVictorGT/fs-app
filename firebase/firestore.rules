@@ -3,46 +3,67 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── Funções auxiliares ──────────────────────────────────────────────────
+
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    function isOwner(uid) {
+      return request.auth.uid == uid;
     }
 
-    function hasRole(role) {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
-    // Teachers collection
-    match /teachers/{teacherId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && hasRole('admin');
+    function isTeacher() {
+      return isAuthenticated() && getUserRole() == 'teacher';
     }
 
-    // Students collection
-    match /students/{studentId} {
-      allow read: if isAuthenticated() && (isOwner(studentId) || hasRole('teacher'));
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (isOwner(studentId) || hasRole('teacher'));
+    // ── Academias ───────────────────────────────────────────────────────────
+    match /academies/{academyId} {
+      allow read:  if isAuthenticated();
+      allow write: if false; // Apenas Admin SDK
     }
 
-    // Slots collection
+    // ── Usuários (professores e alunos — coleção unificada) ─────────────────
+    match /users/{userId} {
+      // Qualquer autenticado pode ler perfis (ex: listar professores)
+      allow read:   if isAuthenticated();
+      // Criação e exclusão: apenas Admin SDK (servidor)
+      allow create: if false;
+      allow delete: if false;
+      // O próprio usuário pode atualizar seu perfil
+      allow update: if isAuthenticated() && isOwner(userId);
+    }
+
+    // ── Horários (slots) ─────────────────────────────────────────────────────
     match /slots/{slotId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && hasRole('teacher');
+      allow read:   if isAuthenticated();
+      allow create: if isTeacher();
+      allow update: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
     }
 
-    // Bookings collection
+    // ── Agendamentos ─────────────────────────────────────────────────────────
     match /bookings/{bookingId} {
       allow read: if isAuthenticated() && (
-        isOwner(resource.data.studentId) || hasRole('teacher')
+        resource.data.studentId == request.auth.uid ||
+        resource.data.teacherId == request.auth.uid
       );
-      allow create: if isAuthenticated() && hasRole('student');
-      allow update: if isAuthenticated() && (
-        isOwner(resource.data.studentId) || hasRole('teacher')
-      );
+      // Escritas controladas pelo backend via Admin SDK
+      allow write: if false;
     }
+
+    // ── Streaks ──────────────────────────────────────────────────────────────
+    match /streaks/{studentId} {
+      allow read: if isAuthenticated() && (
+        isOwner(studentId) || isTeacher()
+      );
+      // Atualizações somente pelo backend (confirmação de presença)
+      allow write: if false;
+    }
+
   }
 }

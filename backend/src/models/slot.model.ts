@@ -16,4 +16,4 @@ export interface Slot {
 }
 
 export type CreateSlotDTO = Omit<Slot, 'id' | 'currentBookings' | 'status' | 'createdAt'>;
-export type UpdateSlotDTO = Partial<Omit<CreateSlotDTO, 'teacherId'>>;
+export type UpdateSlotDTO = Partial<Omit<CreateSlotDTO, 'teacherId'>> & { status?: SlotStatus };

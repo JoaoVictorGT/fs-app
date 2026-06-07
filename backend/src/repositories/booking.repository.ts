@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import { Booking, CreateBookingDTO } from '../models/booking.model';
+import { Booking, CreateBookingDTO, CalendarEvent } from '../models/booking.model';
 import { mockBookings } from '../data/mockData';
 
 // NOTE: Replace with FirestoreBookingRepository when Firebase credentials are available.
@@ -34,9 +34,31 @@ export class BookingRepository {
       ...data,
       id: uuid(),
       status: 'confirmed',
+      attendanceConfirmed: false,
+      calendarEvents: { google: null, outlook: null },
       bookedAt: new Date(),
     };
     this.store.set(booking.id, booking);
+    return booking;
+  }
+
+  async confirmAttendance(id: string): Promise<Booking | null> {
+    const booking = this.store.get(id);
+    if (!booking) return null;
+    booking.attendanceConfirmed = true;
+    this.store.set(id, booking);
+    return booking;
+  }
+
+  async setCalendarEvent(
+    id: string,
+    provider: 'google' | 'outlook',
+    event: CalendarEvent | null
+  ): Promise<Booking | null> {
+    const booking = this.store.get(id);
+    if (!booking) return null;
+    booking.calendarEvents = { ...booking.calendarEvents, [provider]: event };
+    this.store.set(id, booking);
     return booking;
   }
 

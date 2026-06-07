@@ -47,14 +47,37 @@ export interface Slot {
   createdAt: string;
 }
 
+export interface CalendarEvent {
+  eventId: string;
+  calendarId?: string;
+}
+
 export interface Booking {
   id: string;
   slotId: string;
   studentId: string;
   teacherId: string;
   status: BookingStatus;
+  attendanceConfirmed: boolean;
+  calendarEvents: { google: CalendarEvent | null; outlook: CalendarEvent | null };
   bookedAt: string;
   cancelledAt?: string;
+}
+
+export interface WeekEntry {
+  week: string;
+  trained: boolean;
+}
+
+export interface Streak {
+  id: string;
+  studentId: string;
+  currentStreak: number;
+  recordStreak: number;
+  lastTrainedWeek: string | null;
+  weeklyHistory: WeekEntry[];
+  monthlyWeeks: WeekEntry[];
+  updatedAt: string;
 }
 
 export interface LoginResponse {
