@@ -27,7 +27,7 @@ jobs:
       - name: Dependency audit
         working-directory: backend
         run: |
-          npm audit fix
+          npm audit fix || true
           npm audit --audit-level=high
 
       - name: Typecheck
