@@ -21,6 +21,19 @@ jobs:
       - name: Build backend image
         run: docker build --progress=plain -t studio-fitness-backend:test -f backend/Dockerfile.ci ./backend
 
+      - name: Test backend startup
+        run: |
+          docker run --rm \
+            --network host \
+            -e NODE_ENV=test \
+            -e PORT=4000 \
+            -e JWT_SECRET=dast-test-secret \
+            -e CORS_ORIGIN=http://localhost:3000 \
+            -e FIREBASE_PROJECT_ID=demo-studio-fitness \
+            -e FIRESTORE_EMULATOR_HOST=localhost:8080 \
+            studio-fitness-backend:test \
+            node -e "require('./dist/server.js')" 2>&1 | head -50 || true
+
       - name: Start backend container
         run: |
           docker run -d \
@@ -37,12 +50,8 @@ jobs:
       - name: Debug backend logs
         if: always()
         run: |
-          echo "=== Container status ==="
-          docker ps -a
-          echo "=== Container logs ==="
+          sleep 3
           docker logs studio-fitness-backend 2>&1 || true
-          echo "=== Container inspect ==="
-          docker inspect studio-fitness-backend --format='{{.State.Status}} {{.State.ExitCode}} {{.State.Error}}' || true
 
       - name: Wait for backend to be ready
         run: |
