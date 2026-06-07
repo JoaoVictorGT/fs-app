@@ -36,7 +36,13 @@ jobs:
 
       - name: Debug backend logs
         if: always()
-        run: docker logs studio-fitness-backend || true
+        run: |
+          echo "=== Container status ==="
+          docker ps -a
+          echo "=== Container logs ==="
+          docker logs studio-fitness-backend 2>&1 || true
+          echo "=== Container inspect ==="
+          docker inspect studio-fitness-backend --format='{{.State.Status}} {{.State.ExitCode}} {{.State.Error}}' || true
 
       - name: Wait for backend to be ready
         run: |
